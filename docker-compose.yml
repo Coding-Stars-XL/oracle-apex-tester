@@ -1,24 +1,28 @@
 # Docker Deployment for Oracle APEX and Ords
 services:
   ords:
-    image: sath89/apex-ords
     container_name: ords
+    build:
+      context: ./ords
+      dockerfile: Dockerfile
     ports:
-      - "8888:8888"
+      - "8080:8080"
+    env_file:
+      - ./.env
     environment:
-      - DB_HOST=oracle-db
-      - DB_PORT=1521
-      - DB_SERVICE=ORCLCDB.localdomain
-      - DB_USER=system
-      - DB_PASSWORD=oracle
-      - APEX_PUBLIC_USER_PASS=oracle
-      - APEX_LISTENER_PASS=oracle
-      - APEX_REST_PASS=oracle
-      - ORDS_PASS=oracle
-      - SYS_PASS=oracle
-      - ORDS_HOME=/opt/ords
-      - APEX_HOME=/opt/oracle/apex
-      - JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+      DB_HOST: oracle-db
+      DB_PORT: 1521
+      DB_SERVICE: ORCLCDB.localdomain
+      DB_USER: system
+      DB_PASSWORD: oracle
+      APEX_PUBLIC_USER_PASS: oracle
+      APEX_LISTENER_PASS: oracle
+      APEX_REST_PASS: oracle
+      ORDS_PASS: oracle
+      SYS_PASS: oracle
+      ORDS_HOME: /opt/ords
+      APEX_HOME: /opt/oracle/apex
+      JAVA_HOME: /usr/lib/jvm/java-8-openjdk-amd64
     volumes:
       - ./oracle-apex-test/ords:/opt/ords
       - ./oracle-apex-test/apex:/opt/oracle/apex
@@ -34,26 +38,32 @@ services:
       context: ./oracle-express
       dockerfile: Dockerfile
     environment:
-      - ORACLE_ALLOW_REMOTE=true
-      - ORACLE_DISABLE_APEX=true
-      - ORACLE_DISABLE_DEFAULT_ACCOUNTS=true
-      - ORACLE_DISABLE_SAMPLE_SCHEMAS=true
-      - ORACLE_PASSWORD=oracle
-      - ORACLE_SID=ORCLCDB
-      - ORACLE_PDB=ORCLPDB1
+      ORACLE_ALLOW_REMOTE: true
+      ORACLE_DISABLE_APEX: true
+      ORACLE_DISABLE_DEFAULT_ACCOUNTS: true
+      ORACLE_DISABLE_SAMPLE_SCHEMAS: true
+      ORACLE_PASSWORD: oracle
+      ORACLE_SID: ORCLCDB
+      ORACLE_PDB: ORCLPDB1
     ports:
       - "1521:1521"
     volumes:
       - ./oracle-apex-test/oracle:/opt/oracle/oradata 
-  httpd:
-    image: httpd:2.4
-    container_name: httpd
+  apache:
+    container_name: httpd-proxy
+    build:
+      context: ./httpd
+      dockerfile: Dockerfile
     ports:
-      - "80:80"
-    volumes:
-      - ./oracle-apex-test/httpd:/usr/local/apache2/htdocs
-    depends_on:
-      - ords
-    links:
-      - ords
-    command: httpd-foreground
+      - "443:443"
+    networks:
+      - oracle-apex_network
+
+networks:
+  oracle-apex_network:
+
+volumes:
+  oracle_data:
+  oracle_apex_data:
+  oracle_ords_data:
+  oracle_tomcat_data:
